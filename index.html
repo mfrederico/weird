@@ -1,0 +1,125 @@
+<html>
+	<head>
+		<link href='http://fonts.googleapis.com/css?family=Actor' rel='stylesheet' type='text/css'/	>
+		<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.7.2/themes/ui-lightness/jquery-ui.css" type="text/css" media="all" />
+
+		<!-- Bootstrap core CSS -->
+		<!-- link href="http://startbootstrap.com/templates/sb-admin/css/bootstrap.css" rel="stylesheet"/ -->
+		<link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet"/>
+		<link href="//startbootstrap.com/templates/sb-admin-2/css/sb-admin-2.css" rel="stylesheet"/> 
+
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" />
+
+
+		<!-- JavaScript -->
+		<script src="http://code.jquery.com/jquery-1.10.2.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+		<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
+	</head>
+<body>
+
+<div id="wrapper">
+	<nav class="navbar navbar-default navbar-static-top" role="navigation">
+		<div class="navbar-header">
+			WEbsocket // Interface // ReDbean //  WEIRD
+		</div>
+
+		<div class="navbar-default sidebar" role="navigation">
+			<div class="sidebar-nav navbar-collapse">
+				<ul class="nav" id="side-menu">
+					<li><a class="SET" href="#SET"><i class="fa fa-home"></i> SET</a></li>
+					<li><a class="GET" href="#GET"><i class="fa fa-cog"></i> GET</a></li>
+					<li><a class="POP" href="#POP"><i class="fa fa-flag"></i> POP</a></li>
+					<li><a class="DEL" href="#DEL"><i class="fa fa-envelope"></i> DEL</a></li>
+					<li><a class="SUB" href="#SUB"><i class="fa fa-user"></i> SUB</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+	<div id="page-wrapper">
+		<div data-role="content">
+			<button class="btn connect">Connect</button>
+
+			Bean: <input type="text" name="bean" class="bean" value="book">
+			<fieldset>
+				<legend>SET Arbitrary static data point to set DB with</legend>
+				<form id="static">
+					Author: <input type="text" name="author" value="Leo Tolstoy ">
+					Book: <input type="text" name="book" value="War and peace">
+				</form>
+			</fieldset>
+
+			<fieldset>
+				<legend>GET DB data here</legend>
+				<form id="dynamic">
+					ID: <input type="text" name="id" value="">
+					<Br />
+					<span class="id">empty</span>
+					<span class="author">empty</span>
+					<span class="book">empty</span>
+				</form>
+			</fieldset>
+		</div>
+	</div>
+</div>
+
+</body>
+
+<script>
+	var weird;
+	var arbitrary_data = { "title" : "This is a title"};
+
+	$('.connect').on('click',function() { connect() });
+
+		$('.SET').on('click',function() {
+			console.log(JSON.stringify($('#static').serializeArray()));
+			set($('.bean').val(),JSON.stringify($('#static').serializeArray()));
+		});
+
+		$('.GET').on('click',function() {
+			console.log(JSON.stringify($('#dynamic').serializeArray()));
+			get($('.bean').val(),JSON.stringify($('#dynamic').serializeArray()));
+		});
+
+		function set(bean, data_payload)
+		{
+			weird.send('SET '+bean+' '+data_payload);
+		}
+
+		function get(bean, data_payload)
+		{
+			weird.send('GET '+bean+' '+data_payload);
+		}
+
+
+		function connect()
+		{
+			weird = new WebSocket("ws://localhost:8080");
+
+			weird.onopen = function (event) {
+				$('.connect').css('background','lightgreen');
+				$('.connect').text('Connected');
+			};
+
+			weird.onclose = function (event) {
+				$('.connect').css('background','lightgrey');
+				$('.connect').text('Connect');
+			}
+
+			weird.onmessage = function (data, start, end)
+			{
+				console.log('ON DATA!');
+				message = JSON.parse(data.data);
+				$.each(message, function(a,b)
+				{
+					$.each(b, function(k,v)
+					{
+						$('#dynamic .'+k).text(v);		
+					});
+				});
+			}
+
+		}
+</script>
+
+</body>
