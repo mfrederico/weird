@@ -27,11 +27,6 @@
 		<div class="navbar-default sidebar" role="navigation">
 			<div class="sidebar-nav navbar-collapse">
 				<ul class="nav" id="side-menu">
-					<li><a class="SET" href="#SET"><i class="fa fa-home"></i> SET</a></li>
-					<li><a class="GET" href="#GET"><i class="fa fa-cog"></i> GET</a></li>
-					<li><a class="POP" href="#POP"><i class="fa fa-flag"></i> POP</a></li>
-					<li><a class="DEL" href="#DEL"><i class="fa fa-envelope"></i> DEL</a></li>
-					<li><a class="SUB" href="#SUB"><i class="fa fa-user"></i> SUB</a></li>
 				</ul>
 			</div>
 		</div>
@@ -43,21 +38,24 @@
 			Bean: <input type="text" name="bean" class="bean" value="book">
 			<fieldset>
 				<legend>SET Arbitrary static data point to set DB with</legend>
-				<form id="static">
+				<form id="formA">
 					Author: <input type="text" name="author" value="Leo Tolstoy ">
 					Book: <input type="text" name="book" value="War and peace">
+					<a class="SET" href="#SET"><i class="fa fa-home"></i> SET</a>
 				</form>
 			</fieldset>
 
 			<fieldset>
 				<legend>GET DB data here</legend>
-				<form id="dynamic">
+				<form id="formB">
 					ID: <input type="text" name="id" value="">
-					<Br />
-					<span class="id">empty</span>
-					<span class="author">empty</span>
-					<span class="book">empty</span>
+					<h4>Actions</h4>
+					<a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> GET</a>
+					<a class="LST btn btn-default" href="#LST"><i class="fa fa-list-alt"></i> LST</a>
+					<a class="POP btn btn-default" href="#POP"><i class="fa fa-eject"></i> POP</a>
+					<a class="DEL btn btn-default" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
 				</form>
+				<div id="results"></div>
 			</fieldset>
 		</div>
 	</div>
@@ -67,42 +65,39 @@
 
 <script>
 	var weird;
-	var arbitrary_data = { "title" : "This is a title"};
+	var weird_results = {};
 
 	$('.connect').on('click',function() { connect() });
 
 		$('.SET').on('click',function() {
-			set($('.bean').val(),JSON.stringify($('#static').serializeArray()));
+			doWeird('set',$('.bean').val(),JSON.stringify($('#formA').serializeArray()));
 		});
 
 		$('.POP').on('click',function() {
-			pop($('.bean').val(),JSON.stringify($('#dynamic').serializeArray()));
+			doWeird('pop',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
 
+		$('.LST').on('click',function() {
+			doWeird('get',$('.bean').val(),'{}');
+		});
 
 		$('.GET').on('click',function() {
-			get($('.bean').val(),JSON.stringify($('#dynamic').serializeArray()));
+			doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
 
-		// Combine these as ONE?
-		function pop(bean, data_payload)
+		function doWeird(cmd, bean, data_payload)
 		{
-			weird.send('POP '+bean+' '+data_payload);
-			console.log("sending : ",data_payload);
+			if (typeof weird == 'undefined')
+			{
+				// This could be whatever, but for now:
+				alert('Please click the "Connect" button.');
+			}
+			else
+			{
+				console.log(weird);
+				weird.send(cmd.toUpperCase()+' '+bean+' '+data_payload);
+			}
 		}
-
-		function set(bean, data_payload)
-		{
-			weird.send('SET '+bean+' '+data_payload);
-			console.log("sending : ",data_payload);
-		}
-
-		function get(bean, data_payload)
-		{
-			weird.send('GET '+bean+' '+data_payload);
-			console.log("sending : ",data_payload);
-		}
-
 
 		function connect()
 		{
@@ -120,6 +115,7 @@
 
 			weird.onmessage = function (data, start, end)
 			{
+				weird_results = {};
 				message = JSON.parse(data.data);
 				console.log(message);
 				$.each(message, function(a,b)
@@ -127,16 +123,13 @@
 					console.log(a,b);
 					if (a !='ERR')
 					{
-						$.each(b, function(k,v)
-						{
-							$('#dynamic .'+k).text(v);		
-						});
+						weird_results[a] = b;
 					}
 					else {
-						$('#dynamic .id').text('ERROR');
-						$('#dynamic .author').text(b);
+						console.log('Error');
 					}
 				});
+				console.log(weird_results);
 			}
 
 		}
