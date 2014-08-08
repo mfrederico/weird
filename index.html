@@ -72,23 +72,35 @@
 	$('.connect').on('click',function() { connect() });
 
 		$('.SET').on('click',function() {
-			console.log(JSON.stringify($('#static').serializeArray()));
 			set($('.bean').val(),JSON.stringify($('#static').serializeArray()));
 		});
 
+		$('.POP').on('click',function() {
+			pop($('.bean').val(),JSON.stringify($('#dynamic').serializeArray()));
+		});
+
+
 		$('.GET').on('click',function() {
-			console.log(JSON.stringify($('#dynamic').serializeArray()));
 			get($('.bean').val(),JSON.stringify($('#dynamic').serializeArray()));
 		});
+
+		// Combine these as ONE?
+		function pop(bean, data_payload)
+		{
+			weird.send('POP '+bean+' '+data_payload);
+			console.log("sending : ",data_payload);
+		}
 
 		function set(bean, data_payload)
 		{
 			weird.send('SET '+bean+' '+data_payload);
+			console.log("sending : ",data_payload);
 		}
 
 		function get(bean, data_payload)
 		{
 			weird.send('GET '+bean+' '+data_payload);
+			console.log("sending : ",data_payload);
 		}
 
 
@@ -108,14 +120,22 @@
 
 			weird.onmessage = function (data, start, end)
 			{
-				console.log('ON DATA!');
 				message = JSON.parse(data.data);
+				console.log(message);
 				$.each(message, function(a,b)
 				{
-					$.each(b, function(k,v)
+					console.log(a,b);
+					if (a !='ERR')
 					{
-						$('#dynamic .'+k).text(v);		
-					});
+						$.each(b, function(k,v)
+						{
+							$('#dynamic .'+k).text(v);		
+						});
+					}
+					else {
+						$('#dynamic .id').text('ERROR');
+						$('#dynamic .author').text(b);
+					}
 				});
 			}
 

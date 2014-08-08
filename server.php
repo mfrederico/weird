@@ -30,7 +30,7 @@ class Chat implements MessageComponentInterface {
 	public function onOpen(ConnectionInterface $conn) {
 		print "Connection open.\n";
 		$this->clients->attach($conn);
-		$conn->send(json_encode(array('RBWS'=>R::getVersion())));
+		$conn->send(json_encode(array(array('RBWS'=>R::getVersion()))));
 	}
 
     public function pushNotify(ConnectionInterface $from, $msg) {
@@ -45,7 +45,6 @@ class Chat implements MessageComponentInterface {
             }
         }
     }
-
 
 	public static function parseFormJson($js)
 	{
@@ -104,55 +103,47 @@ class Chat implements MessageComponentInterface {
 			if (in_array($CMD, $this->valid_commands)) 
 			{
 
-				// If you try to "set" a bean with an ID, it will attempt to 
-				// "UPDATE" that partuclar bean.
-				// If that bean does not exist, it will still return as if it were valid!
-				// This is undesired behavior.
-				if ($CMD == 'SET') 
+				$payload_bind	= '';
+				switch($CMD) 
 				{
-					$thisbean = R::dispense($BEAN);
-					if (is_array($payload_data)) $thisbean->import($payload_data);
-					$id = R::store($thisbean);
-					$from->send(json_encode(array('id'=>$id)));
-				}
-				else if ($CMD == 'GET') 
-				{
-					$payload_bind	= '';
-					list($payload_bind, $payload_values) = self::buildBindings($payload_data);
-					$tmpbean = R::find($BEAN, $payload_bind, $payload_values);
-					if ($tmpbean)
-					{
-						$from->send(json_encode(R::exportAll($tmpbean, TRUE)));
-					}
-					else $from->send(json_encode(array('ERR',$BEAN. ' not found.')));
-				}
-				// Subscribe to a particular bean for updates
-				else if ($CMD == 'SUB')
-				{
-
-				}
-				else if ($CMD == 'POP') 
-				{
-					$payload_bind	= '';
-					list($payload_bind, $payload_values) = self::buildBindings($payload_data);
-					$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
-					if ($tmpbean) 
-					{
-						$from->send(json_encode($tmpbean->export(), TRUE));
-						R::trash($tmpbean);
-					}
-					else $from->send(json_encode(array('ERR',$BEAN. ' not found.')));
-				}
-				else if ($CMD == 'DEL')
-				{
-					$tmpbean = R::load($BEAN,$payload_data['id']);
-					if ($tmpbean) 
-					{ 
-						$tmpval = $tmpbean->export();
-						R::trash($tmpbean);
-						$from->send(json_encode($tmpval));
-					}
-					else $from->send(json_encode(array('ERR',$BEAN. ' not found.')));
+					case 'SET':
+						$thisbean = R::dispense($BEAN);
+						if (is_array($payload_data)) $thisbean->import($payload_data);
+						$id = R::store($thisbean);
+						$from->send(json_encode(array('id'=>$id)));
+						break;
+					case 'GET':
+						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
+						$tmpbean = R::find($BEAN, $payload_bind, $payload_values);
+						if ($tmpbean)
+						{
+							$from->send(json_encode(R::exportAll($tmpbean, TRUE)));
+						}
+						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						break;
+					case 'POP':
+						$payload_bind	= '';
+						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
+						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
+						if ($tmpbean) 
+						{
+							$from->send(json_encode(array($tmpbean->export()), TRUE));
+							R::trash($tmpbean);
+						}
+						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						break;
+					case 'DEL':
+						$tmpbean = R::load($BEAN,$payload_data['id']);
+						if ($tmpbean) 
+						{ 
+							$tmpval = $tmpbean->export();
+							R::trash($tmpbean);
+							$from->send(json_encode($tmpval));
+						}
+						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						break;
+					default : 
+						$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 				}
 			}
 		}
