@@ -17,6 +17,9 @@
 		<script src="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.2.0/js/bootstrap.min.js"></script>
 	</head>
 <body>
+<style>
+.key { width:200px; display:block;float:left;clear:left}
+</style>
 
 <div id="wrapper">
 	<nav class="navbar navbar-default navbar-static-top" role="navigation">
@@ -33,29 +36,32 @@
 	</nav>
 	<div id="page-wrapper">
 		<div data-role="content">
+			<br />
 			<button class="btn connect">Connect</button>
 
-			Bean: <input type="text" name="bean" class="bean" value="book">
+			Collection: <input type="text" name="bean" class="bean" value="book">
 			<fieldset>
-				<legend>SET Arbitrary static data point to set DB with</legend>
+				<legend>Arbitrary form fields to store in collection</legend>
 				<form id="formA">
-					Author: <input type="text" name="author" value="Leo Tolstoy ">
-					Book: <input type="text" name="book" value="War and peace">
-					<a class="SET" href="#SET"><i class="fa fa-home"></i> SET</a>
+					<b class="key">Name</b><input type="text" name="name" value="Leo Tolstoy "><br />
+					<b class="key">Title</b><input type="text" name="title" value="War and peace"><Br />
+					<input type="checkbox" name="sharedSelection" value="1"> 1
+					<input type="checkbox" name="sharedSelection" value="2"> 2
+					<input type="checkbox" name="sharedSelection" value="3"> 3
+					<a class="SET btn btn-default" href="#SET"><i class="fa fa-plus"></i> ADD RECORD</a>
 				</form>
 			</fieldset>
 
 			<fieldset>
-				<legend>GET DB data here</legend>
+				<legend>PLAY With DB data here</legend>
 				<form id="formB">
-					ID: <input type="text" name="id" value="">
+					ID: <input type="text" name="id" value=""> <a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> LOAD</a>
 					<h4>Actions</h4>
-					<a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> GET</a>
-					<a class="LST btn btn-default" href="#LST"><i class="fa fa-list-alt"></i> LST</a>
+					<a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> LIST</a>
 					<a class="POP btn btn-default" href="#POP"><i class="fa fa-eject"></i> POP</a>
 					<a class="DEL btn btn-default" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
 				</form>
-				<div id="results"></div>
+				<div id="output"></div>
 			</fieldset>
 		</div>
 	</div>
@@ -77,10 +83,6 @@
 			doWeird('pop',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
 
-		$('.LST').on('click',function() {
-			doWeird('get',$('.bean').val(),'{}');
-		});
-
 		$('.GET').on('click',function() {
 			doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
@@ -91,12 +93,46 @@
 			{
 				// This could be whatever, but for now:
 				alert('Please click the "Connect" button.');
+				return(false);
 			}
 			else
 			{
-				console.log(weird);
 				weird.send(cmd.toUpperCase()+' '+bean+' '+data_payload);
+				return(true);
 			}
+		}
+
+		function perform_magic(message)
+		{
+			$('#output').html('');
+			$.each(message, function(idx,dataSet)
+			{
+				if (idx =='ERR')
+				{
+					$('#output').text('Error: '+dataSet);
+				}
+				if (idx == 'OK')
+				{
+					magic = '';
+					$.each(dataSet, function (i,obj) 
+					{
+						magic += '<blockquote><form id="magic_'+i+'" class="magic">'
+						$.each(obj, function(k,v) 
+						{
+							magic += '<b class="key">'+k+'</b><input type="text" name="'+k+'" value="'+v+'"><br />';
+						});
+						magic += '<a class="UPDATE btn btn-default" href="#SET"><i class="fa fa-check"></i> SET</a>';
+						magic += '</form></blockquote>';
+					});
+					$('#output').append(magic);
+				}
+			});
+
+			$('.UPDATE').on('click',function() {
+				magic_form_id = $(this).parent().attr('id');
+				doWeird('set',$('.bean').val(),JSON.stringify($('#'+magic_form_id).serializeArray()));
+			});
+
 		}
 
 		function connect()
@@ -117,19 +153,7 @@
 			{
 				weird_results = {};
 				message = JSON.parse(data.data);
-				console.log(message);
-				$.each(message, function(a,b)
-				{
-					console.log(a,b);
-					if (a !='ERR')
-					{
-						weird_results[a] = b;
-					}
-					else {
-						console.log('Error');
-					}
-				});
-				console.log(weird_results);
+				perform_magic(message);
 			}
 
 		}

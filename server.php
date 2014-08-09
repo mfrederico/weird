@@ -63,13 +63,17 @@ class Chat implements MessageComponentInterface {
 		$plb			= 0; // Bindig count
 		$payload_bind	= ''; // The string to create for bindings
 		$payload_values = array();
+
 		if (isset($payload_data))
 		{
 			foreach($payload_data as $k=>$v)
 			{
 				if ($plb++ > 0) $payload_bind .= " AND";
-				$payload_bind .= " `{$k}`=?";
-				$payload_values[] = $v;
+				if (!empty($v))
+				{
+					$payload_bind .= " `{$k}`=?";
+					$payload_values[] = $v;
+				}
 			}
 		}
 		return (array($payload_bind, $payload_values));
@@ -117,17 +121,18 @@ class Chat implements MessageComponentInterface {
 						$tmpbean = R::find($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean)
 						{
-							$from->send(json_encode(R::exportAll($tmpbean, TRUE)));
+							$from->send(json_encode(array('OK'=>R::exportAll($tmpbean, TRUE))));
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
 					case 'POP':
 						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
+					
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean) 
 						{
-							$from->send(json_encode(array($tmpbean->export()), TRUE));
+							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
