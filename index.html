@@ -21,49 +21,73 @@
 .key { width:200px; display:block;float:left;clear:left}
 </style>
 
-<div id="wrapper">
-	<nav class="navbar navbar-default navbar-static-top" role="navigation">
-		<div class="navbar-header">
-			WEbsocket // Interface // ReDbean //  WEIRD
-		</div>
-
-		<div class="navbar-default sidebar" role="navigation">
-			<div class="sidebar-nav navbar-collapse">
-				<ul class="nav" id="side-menu">
-				</ul>
-			</div>
-		</div>
-	</nav>
-	<div id="page-wrapper">
+<div class="container">
+	<div class="page-wrapper">
 		<div data-role="content">
 			<br />
 			<button class="btn connect">Connect</button>
 
-			Collection: <input type="text" name="bean" class="bean" value="book">
-			<fieldset>
-				<legend>Arbitrary form fields to store in collection</legend>
-				<form id="formA">
-					<b class="key">Name</b><input type="text" name="name" value="Leo Tolstoy "><br />
-					<b class="key">Title</b><input type="text" name="title" value="War and peace"><Br />
-					<input type="checkbox" name="sharedSelection" value="1"> 1
-					<input type="checkbox" name="sharedSelection" value="2"> 2
-					<input type="checkbox" name="sharedSelection" value="3"> 3
-					<a class="SET btn btn-default" href="#SET"><i class="fa fa-plus"></i> ADD RECORD</a>
-				</form>
-			</fieldset>
+			<blockquote>
+				<div role="form">
+					<label for="bean">Current Collection</label>
+					<input type="text" name="bean" class="bean form-control" value="books">
+				</div>
+			</blockquote>
 
-			<fieldset>
-				<legend>PLAY With DB data here</legend>
-				<form id="formB">
-					ID: <input type="text" name="id" value=""> <a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> LOAD</a>
-					<h4>Actions</h4>
-					<a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> LIST</a>
-					<a class="POP btn btn-default" href="#POP"><i class="fa fa-eject"></i> POP</a>
-					<a class="DEL btn btn-default" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
-					<a class="SUB btn btn-default" href="#SUB"><i class="fa fa-eject"></i> SUB</a>
-				</form>
-				<div id="output"></div>
-			</fieldset>
+			<div class="row">
+
+				<div class="col-md-6">
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<h3 class="panel-title">Arbitrary form fields to store in collection</h3>
+						</div>
+						<div class="panel-body">
+							<form role="form" id="formA">
+								<div class="form-group">
+									<label for="name">Name</label>
+									<input class="form-control" type="text" name="name" value="Leo Tolstoy ">
+								</div>
+								<div class="form-group">
+									<label for="title">Title</label>
+									<input class="form-control" type="text" name="title" value="War and peace">
+								</div>
+								<div class="form-group">
+									<a class="SET btn btn-success" href="#SET"><i class="fa fa-plus"></i> ADD RECORD</a>
+								</div>
+							</form>
+						</div>
+						<div class="panel-footer">
+							<small><b>NOTE:</b> You could add more form fields in the index.html and it will save them without requiring a schema change!</small>
+						</div>
+					</div>
+				</div>
+
+				<div class="col-md-6">
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<h3 class="panel-title">PLAY With DB data here</h3>
+						</div>
+						<div class="panel-body">
+							<form id="formB">
+								RECORD ID: <input type="text" name="id" value=""> <a class="GET btn btn-default" href="#GET"><i class="fa fa-arrow-down"></i> GET</a> <a class="SUB btn btn-primary" href="#SUB"><i class="fa fa-link"></i> SUB</a> <a class="DEL btn btn-danger" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
+								<h4>General Actions</h4>
+								<a class="GET btn btn-primary" href="#GET"><i class="fa fa-list"></i> LIST</a>
+								<a class="POP btn btn-primary" href="#POP"><i class="fa fa-eject"></i> POP</a><br />
+							</form>
+						</div>
+						<div class="panel-footer">
+							<small><b>NOTE:</b> POP will GET and DELETE from the top of the list</small>
+						</div>
+					</div>
+				</div>
+
+			</div>
+			<div class="panel panel-info">
+				<div class="panel-heading">
+					<h3 class="panel-title">Data output will show up here</h3>
+				</div>
+				<div class="panel-body" id="output"></div>
+			</div>
 		</div>
 	</div>
 </div>
@@ -121,13 +145,17 @@
 					magic = '';
 					$.each(dataSet, function (i,obj) 
 					{
-						magic += '<blockquote><form id="magic_'+i+'" class="magic">'
+						magic += '<div class="panel"><div class="panel-body">';
+						magic += '<form role="form" id="magic_'+i+'" class="magic">'
 						$.each(obj, function(k,v) 
 						{
-							magic += '<b class="key">'+k+'</b><input type="text" name="'+k+'" value="'+v+'"><br />';
+							magic += '<div class="form-group">';
+							magic += '<label for="'+k+'">'+k+'</label>';
+							magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
+							magic += '</div>';
 						});
 						magic += '<a class="UPDATE btn btn-default" href="#SET"><i class="fa fa-check"></i> SET</a>';
-						magic += '</form></blockquote>';
+						magic += '</form></div></div>';
 					});
 					$('#output').append(magic);
 				}

@@ -90,25 +90,28 @@ class Chat implements MessageComponentInterface {
 
 		print_r($this->subscribers[$BEAN][$id]);
 
-		if (isset($this->subscribers[$BEAN][$id])) 
+		if (!isset($this->subscribers[$BEAN])) return(false);
+		foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
 		{
-			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
+			if ($status == 'SUB') 
 			{
-				if ($status == 'SUB') 
+				foreach($this->clients as $c)
 				{
-					foreach($this->clients as $c)
+					if ($c->resourceId == $subscriber)
 					{
 						print "SENDING ".$c->resourceId. " WHAT {$happened} TO {$BEAN} #{$id}\n";
-						if ($happened == 'DEL') 
+						switch($happened) 
 						{
-							unset($this->subscribers[$BEAN][$id]);
-							$c->send("BUS DEL {$BEAN} {$id}");
-						}
-
-						if ($happened == 'SET') 
-						{
-							// Auto push updates to beans/records
-							$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+							case 'DEL':
+								unset($this->subscribers[$BEAN][$id]);
+								$c->send("BUS DEL {$BEAN} {$id}");
+								break;
+							case 'SET': 
+								// Auto push updates to beans/records
+								$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+								break;
+							default:
+								break;
 						}
 					}
 				}
