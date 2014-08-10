@@ -60,6 +60,7 @@
 					<a class="GET btn btn-default" href="#GET"><i class="fa fa-cog"></i> LIST</a>
 					<a class="POP btn btn-default" href="#POP"><i class="fa fa-eject"></i> POP</a>
 					<a class="DEL btn btn-default" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
+					<a class="SUB btn btn-default" href="#SUB"><i class="fa fa-eject"></i> SUB</a>
 				</form>
 				<div id="output"></div>
 			</fieldset>
@@ -71,12 +72,15 @@
 
 <script>
 	var weird;
-	var weird_results = {};
 
 	$('.connect').on('click',function() { connect() });
 
 		$('.SET').on('click',function() {
 			doWeird('set',$('.bean').val(),JSON.stringify($('#formA').serializeArray()));
+		});
+
+		$('.SUB').on('click',function() {
+			doWeird('sub',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
 
 		$('.POP').on('click',function() {
@@ -104,6 +108,7 @@
 
 		function perform_magic(message)
 		{
+			console.log('MAGIC', message);
 			$('#output').html('');
 			$.each(message, function(idx,dataSet)
 			{
@@ -111,7 +116,7 @@
 				{
 					$('#output').text('Error: '+dataSet);
 				}
-				if (idx == 'OK')
+				else if (idx == 'OK')
 				{
 					magic = '';
 					$.each(dataSet, function (i,obj) 
@@ -125,6 +130,11 @@
 						magic += '</form></blockquote>';
 					});
 					$('#output').append(magic);
+				}
+				else 
+				{
+					console.log('Nothing special here.');
+					console.log(message);
 				}
 			});
 
@@ -151,7 +161,6 @@
 
 			weird.onmessage = function (data, start, end)
 			{
-				weird_results = {};
 				message = JSON.parse(data.data);
 				perform_magic(message);
 			}

@@ -1,5 +1,7 @@
 <?php
 
+// JSON ENCODE AS ARRAY! PLEASE - FOR THE LOVE OF ALL THAT IS HOLY
+
 include_once('vendor/autoload.php');
 include_once('vendor/rbsock/src/rb.php');
 
@@ -15,11 +17,12 @@ $x = R::setup('sqlite:local.sqlite','test','test');
 
 class Chat implements MessageComponentInterface {
 
-	var $valid_commands = array('SET', 'GET', 'DEL', 'POP');
+	var $valid_commands = array('SET', 'GET', 'DEL', 'POP', 'SUB');
 
 	public static $beanlist = array();
 	public static $beancnt	= 0;
 
+	protected $subscribers;
 	protected $clients;
 	protected $notify;
 
@@ -30,7 +33,7 @@ class Chat implements MessageComponentInterface {
 	public function onOpen(ConnectionInterface $conn) {
 		print "Connection open.\n";
 		$this->clients->attach($conn);
-		$conn->send(json_encode(array(array('RBWS'=>R::getVersion()))));
+		$conn->send(json_encode(array(array('RBWS'=>R::getVersion())), TRUE));
 	}
 
     public function pushNotify(ConnectionInterface $from, $msg) {
@@ -79,9 +82,43 @@ class Chat implements MessageComponentInterface {
 		return (array($payload_bind, $payload_values));
 	}
 
+	function updateSubscribersTo($BEAN,$id, $happened = 'SET')
+	{
+		if ($happened == 'SET') $thisbean = R::load($BEAN, $id);
+
+		print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
+
+		print_r($this->subscribers[$BEAN][$id]);
+
+		if (isset($this->subscribers[$BEAN][$id])) 
+		{
+			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
+			{
+				if ($status == 'SUB') 
+				{
+					foreach($this->clients as $c)
+					{
+						print "SENDING ".$c->resourceId. " WHAT {$happened} TO {$BEAN} #{$id}\n";
+						if ($happened == 'DEL') 
+						{
+							unset($this->subscribers[$BEAN][$id]);
+							$c->send("BUS DEL {$BEAN} {$id}");
+						}
+
+						if ($happened == 'SET') 
+						{
+							// Auto push updates to beans/records
+							$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+						}
+					}
+				}
+			}
+		}
+	}
+
 	public function onMessage(ConnectionInterface $from, $msg)
 	{
-		print_r($from->resourceId);
+		print_r("CONN {$from->resourceId} :: ");
 		list($CMD, $BEAN, $PAYLOAD) = explode(' ',$msg,3);
 
 		if (isset($CMD) && isset($BEAN))
@@ -115,6 +152,9 @@ class Chat implements MessageComponentInterface {
 						if (is_array($payload_data)) $thisbean->import($payload_data);
 						$id = R::store($thisbean);
 						$from->send(json_encode(array('id'=>$id)));
+
+						$this->updateSubscribersTo($BEAN, $id, 'SET');
+
 						break;
 					case 'GET':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
@@ -125,6 +165,23 @@ class Chat implements MessageComponentInterface {
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
+					case 'SUB':
+						$payload_bind	= '';
+						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
+					
+						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
+						if ($tmpbean) 
+						{
+							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+						}
+						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+
+						// Watch for memory compounding
+						$this->subscribers[$BEAN][$tmpbean->id][$from->resourceId] = 'SUB';
+
+						print "This guy subscribed to {$BEAN}->{$tmpbean->id} .. # BEANS subscribed to: " . count($this->subscribers[$BEAN]);
+
+						break;
 					case 'POP':
 						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
@@ -134,8 +191,11 @@ class Chat implements MessageComponentInterface {
 						{
 							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
+							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+
+
 						break;
 					case 'DEL':
 						$tmpbean = R::load($BEAN,$payload_data['id']);
@@ -143,6 +203,7 @@ class Chat implements MessageComponentInterface {
 						{ 
 							$tmpval = $tmpbean->export();
 							R::trash($tmpbean);
+							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 							$from->send(json_encode($tmpval));
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
