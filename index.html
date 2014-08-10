@@ -191,7 +191,7 @@
 
 		function connect()
 		{
-			weird = new WebSocket("ws://localhost:8080");
+			weird = new WebSocket("ws://"+window.location.hostname+":8080");
 
 			weird.onopen = function (event) {
 				$('.connectpanel').css('background','lightgreen');
