@@ -162,6 +162,7 @@ class Chat implements MessageComponentInterface {
 						$this->updateSubscribersTo($BEAN, $id, 'SET');
 
 						break;
+
 					case 'GET':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 						$tmpbean = R::findAll($BEAN, $payload_bind, $payload_values);
@@ -171,6 +172,7 @@ class Chat implements MessageComponentInterface {
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
+
 					case 'SUB':
 						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
@@ -188,6 +190,8 @@ class Chat implements MessageComponentInterface {
 						print "This guy subscribed to {$BEAN}->{$tmpbean->id} .. # BEANS subscribed to: " . count($this->subscribers[$BEAN]);
 
 						break;
+
+					// POP and DEL are exactly the same thing at the moment
 					case 'POP':
 						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
@@ -200,22 +204,23 @@ class Chat implements MessageComponentInterface {
 							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
-
-
 						break;
+
 					case 'DEL':
-						$tmpbean = R::load($BEAN,$payload_data['id']);
+						$payload_bind	= '';
+						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
+					
+						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean) 
-						{ 
-							$tmpval = $tmpbean->export();
+						{
+							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
 							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
-							$from->send(json_encode($tmpval));
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
 					default : 
-						$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						$from->send(json_encode(array('ERR'=>$BEAN. ' -- not found.')));
 				}
 			}
 		}
@@ -230,7 +235,7 @@ class Chat implements MessageComponentInterface {
 	}
 	public function onError(ConnectionInterface $conn, \Exception $e)
 	{
-		print "* hemorrhage: ".$e->getMessage()."\n";
+		print "* Cerebral hemorrhage: ".$e->getMessage()."\n";
 		$conn->send(json_encode(array('ERR'=>$e->getMessage())));
 		$conn->close();
 	}

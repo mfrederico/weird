@@ -21,25 +21,31 @@
 .key { width:200px; display:block;float:left;clear:left}
 </style>
 
+<h1>Delete isn't working, but POP is..</h1>
 <div class="container">
 	<div class="page-wrapper">
 		<div data-role="content">
-			<br />
-			<button class="btn connect">Connect</button>
-
-			<blockquote>
-				<div role="form">
-					<label for="bean">Current Collection</label>
-					<input type="text" name="bean" class="bean form-control" value="books">
-				</div>
-			</blockquote>
 
 			<div class="row">
+				<div class="col-md-2">
+					<div class="panel panel-default connectpanel">
+						<div class="panel-heading">
+							<button class="btn connect">Connect</button>
+						</div>
+						<div class="panel-body">
+							<div role="form">
+								<label for="bean">Current Collection</label>
+								<input type="text" name="bean" class="bean form-control" value="books">
+							</div>
+						</div>
+					</div>
+				</div>
 
-				<div class="col-md-6">
+				<div class="col-md-10">
 					<div class="panel panel-info">
 						<div class="panel-heading">
 							<h3 class="panel-title">Arbitrary form fields to store in collection</h3>
+							<small>* Add a couple (even if they are the same) and play with the collection</small>
 						</div>
 						<div class="panel-body">
 							<form role="form" id="formA">
@@ -61,11 +67,13 @@
 						</div>
 					</div>
 				</div>
+			</div>
 
+			<div class="row">
 				<div class="col-md-6">
 					<div class="panel panel-info">
 						<div class="panel-heading">
-							<h3 class="panel-title">PLAY With DB data here</h3>
+							<h3 class="panel-title">PLAY With collection data here</h3>
 						</div>
 						<div class="panel-body">
 							<form id="formB">
@@ -76,18 +84,21 @@
 							</form>
 						</div>
 						<div class="panel-footer">
-							<small><b>NOTE:</b> POP will GET and DELETE from the top of the list</small>
+							<small><b>NOTE:</b> POP will GET one record from the TOP of the collection, then and DELETE from the collection</small>
 						</div>
 					</div>
 				</div>
-
-			</div>
-			<div class="panel panel-info">
-				<div class="panel-heading">
-					<h3 class="panel-title">Data output will show up here</h3>
+				<div class="col-md-6">
+					<div class="panel panel-info">
+						<div class="panel-heading">
+							<h3 class="panel-title">Data output will show up here</h3>
+						</div>
+						<div class="panel-body" id="output"></div>
+					</div>
 				</div>
-				<div class="panel-body" id="output"></div>
 			</div>
+
+
 		</div>
 	</div>
 </div>
@@ -96,11 +107,17 @@
 
 <script>
 	var weird;
+	// FormA the data input form
+	// FormB is the "ID" input form
 
 	$('.connect').on('click',function() { connect() });
 
 		$('.SET').on('click',function() {
 			doWeird('set',$('.bean').val(),JSON.stringify($('#formA').serializeArray()));
+		});
+
+		$('.DEL').on('click',function() {
+			doWeird('del',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 		});
 
 		$('.SUB').on('click',function() {
@@ -178,11 +195,13 @@
 			weird = new WebSocket("ws://localhost:8080");
 
 			weird.onopen = function (event) {
+				$('.connectpanel').css('background','lightgreen');
 				$('.connect').css('background','lightgreen');
 				$('.connect').text('Connected');
 			};
 
 			weird.onclose = function (event) {
+				$('.connectpanel').css('background','none');
 				$('.connect').css('background','lightgrey');
 				$('.connect').text('Connect');
 			}
