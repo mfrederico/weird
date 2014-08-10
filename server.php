@@ -151,14 +151,17 @@ class Chat implements MessageComponentInterface {
 						$thisbean = R::dispense($BEAN);
 						if (is_array($payload_data)) $thisbean->import($payload_data);
 						$id = R::store($thisbean);
-						$from->send(json_encode(array('id'=>$id)));
+
+						// Auto push updates to beans/records
+						$thisbean->id = $id;
+						$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
 
 						$this->updateSubscribersTo($BEAN, $id, 'SET');
 
 						break;
 					case 'GET':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
-						$tmpbean = R::find($BEAN, $payload_bind, $payload_values);
+						$tmpbean = R::findAll($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean)
 						{
 							$from->send(json_encode(array('OK'=>R::exportAll($tmpbean, TRUE))));
