@@ -15,6 +15,37 @@ use Ratchet\WebSocket\WsServer;
 
 $x = R::setup('sqlite:local.sqlite','test','test');
 
+class Super_Model extends RedBean_SimpleModel
+{
+	public function open() {
+	}
+
+	public function dispense() {
+	}
+
+	public function update() {
+	}
+
+	public function after_update() {
+		global $lifeCycle;
+		global $chat;
+		print_r($chat->subscribers);
+		print_r($chat->subscriptions);
+		$lifeCycle .= "Called AFTER update.";
+	}
+
+	public function delete() {
+	}
+
+	public function after_delete() {
+	}
+}
+
+
+
+// Dynamically create these suckers?
+class Model_Books extends Super_Model { }
+
 class Chat implements MessageComponentInterface {
 
 	var $valid_commands = array('SET', 'GET', 'DEL', 'POP', 'SUB');
@@ -22,10 +53,15 @@ class Chat implements MessageComponentInterface {
 	public static $beanlist = array();
 	public static $beancnt	= 0;
 
-	protected $subscribers;
-	protected $subscriptions;
+	public $subscribers;
+	public $subscriptions;
 	protected $clients;
 	protected $notify;
+
+	public function getClients()
+	{
+		return($clients);
+	}
 
 	public function __construct() {
 		$this->clients = new \SplObjectStorage;
@@ -52,6 +88,11 @@ class Chat implements MessageComponentInterface {
 
 	public static function parseFormJson($js)
 	{
+		global $lifeCycle;
+
+		print "GOT HERE: {$lifeCycle}\n";
+		$lifeCycle = '';
+
 		$final = array();
 		$formdata = json_decode($js,true);
 		foreach($formdata as $fields)
@@ -60,7 +101,6 @@ class Chat implements MessageComponentInterface {
 		}
 	    return($final);
 	}
-
 
 	public static function buildBindings($payload_data)
 	{
@@ -83,17 +123,19 @@ class Chat implements MessageComponentInterface {
 		return (array($payload_bind, $payload_values));
 	}
 
-	function updateSubscribersTo($BEAN,$id, $happened = 'SET')
+	/* Updates all the connected clients who are current subscribers to this specific bean/id */
+	function updateSubscribersTo($BEAN, $id, $happened = 'SET')
 	{
 		if ($happened == 'SET') $thisbean = R::load($BEAN, $id);
 
 		print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
 
-		print_r($this->subscribers[$BEAN][$id]);
+		print_r($this->subscribers[$BEAN]);
 
 		if (!isset($this->subscribers[$BEAN])) return(false);
 		foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
 		{
+			// Possibly more statii to come
 			if ($status == 'SUB') 
 			{
 				foreach($this->clients as $c)
@@ -231,7 +273,7 @@ class Chat implements MessageComponentInterface {
 
 	public function onClose(ConnectionInterface $conn)
 	{
-		print_r("Disconnect: {$conn->resourceId}\n");
+		print_r("DISCONNECT: {$conn->resourceId}\n");
 
 		// Check for subscriptions
 		if (!empty($this->subscriptions[$conn->resourceId]))
@@ -260,10 +302,11 @@ class Chat implements MessageComponentInterface {
 	}
 }
 
+$chat = new Chat();
 $server = IoServer::factory(
 	new HttpServer(
 		new WsServer(
-			new Chat()
+			$chat
 		)
 	), 8080
 );
