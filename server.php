@@ -23,6 +23,7 @@ class Chat implements MessageComponentInterface {
 	public static $beancnt	= 0;
 
 	protected $subscribers;
+	protected $subscriptions;
 	protected $clients;
 	protected $notify;
 
@@ -186,6 +187,7 @@ class Chat implements MessageComponentInterface {
 
 						// Watch for memory compounding
 						$this->subscribers[$BEAN][$tmpbean->id][$from->resourceId] = 'SUB';
+						$this->subscriptions[$from->resourceId] = array($BEAN=>$tmpbean->id);
 
 						print "This guy subscribed to {$BEAN}->{$tmpbean->id} .. # BEANS subscribed to: " . count($this->subscribers[$BEAN]);
 
@@ -230,9 +232,26 @@ class Chat implements MessageComponentInterface {
 	public function onClose(ConnectionInterface $conn)
 	{
 		print_r("Disconnect: {$conn->resourceId}\n");
+
+		// Check for subscriptions
+		if (!empty($this->subscriptions[$conn->resourceId]))
+		{
+			print_r($this->subscribers);
+			print_r($this->subscriptions);
+			foreach($this->subscriptions[$conn->resourceId] as $BEAN=>$id)
+			{
+				unset($this->subscribers[$BEAN][$id][$conn->resourceId]);
+			}
+			// Remove all subscriptions
+			unset($this->subscriptions[$conn->resourceId]);
+			print_r($this->subscribers);
+			print_r($this->subscriptions);
+		}
+
 		$this->clients->detach($conn);
 		print "Connection closed.\n";
 	}
+
 	public function onError(ConnectionInterface $conn, \Exception $e)
 	{
 		print "* Cerebral hemorrhage: ".$e->getMessage()."\n";

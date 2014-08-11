@@ -165,14 +165,19 @@
 					{
 						magic += '<div class="panel"><div class="panel-body">';
 						magic += '<form role="form" id="magic_'+i+'" class="magic">'
+						record_id = 0;
 						$.each(obj, function(k,v) 
 						{
 							magic += '<div class="form-group">';
 							magic += '<label for="'+k+'">'+k+'</label>';
 							magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
 							magic += '</div>';
+
+							// This is this particular record id
+							if (k == 'id') record_id = v;
 						});
 						magic += '<a class="UPDATE btn btn-default" href="#SET"><i class="fa fa-check"></i> SET</a>';
+						magic += ' <a class="SUBSCRIBE btn btn-primary" href="#SUB" id="id_'+record_id+'"><i class="fa fa-link"></i> SUB</a>';
 						magic += '</form></div></div>';
 					});
 					$('#output').append(magic);
@@ -184,7 +189,17 @@
 				}
 			});
 
-			$('.UPDATE').on('click',function() {
+			// For clicking sub on specific item in list
+			$('.SUBSCRIBE').on('click', function()
+			{
+				id = $(this).attr('id').split('_');
+				subscribe_json = { "id" : id[1] };
+				doWeird('sub',$('.bean').val(), JSON.stringify(subscribe_json));
+			});
+
+			// Clicking "SET" in the list
+			$('.UPDATE').on('click',function() 
+			{
 				magic_form_id = $(this).parent().attr('id');
 				doWeird('set',$('.bean').val(),JSON.stringify($('#'+magic_form_id).serializeArray()));
 			});
