@@ -24,17 +24,17 @@ class Super_Model extends RedBean_SimpleModel
 	}
 
 	public function update() {
+		global $chat;
+		$chat->updateSubscribersTo($this->bean->getMeta('type'), $this->bean, 'SET');
 	}
 
 	public function after_update() {
-		global $lifeCycle;
-		global $chat;
-		print_r($chat->subscribers);
-		print_r($chat->subscriptions);
-		$lifeCycle .= "Called AFTER update.";
 	}
 
 	public function delete() {
+		global $chat;
+		print_r($this->bean);
+		$chat->updateSubscribersTo($this->bean->getMeta('type'), $this->bean, 'DEL');
 	}
 
 	public function after_delete() {
@@ -124,37 +124,49 @@ class Chat implements MessageComponentInterface {
 	}
 
 	/* Updates all the connected clients who are current subscribers to this specific bean/id */
-	function updateSubscribersTo($BEAN, $id, $happened = 'SET')
+	// $beandata mixed (int for bean id or actual bean object)
+	public function updateSubscribersTo($BEAN, $beandata, $happened = 'SET')
 	{
-		if ($happened == 'SET') $thisbean = R::load($BEAN, $id);
-
-		print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
-
-		print_r($this->subscribers[$BEAN]);
-
-		if (!isset($this->subscribers[$BEAN])) return(false);
-		foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
+		if (is_int($beandata) && $happened == 'SET') 
 		{
-			// Possibly more statii to come
-			if ($status == 'SUB') 
+			$thisbean = R::load($BEAN, $beandata);
+		}
+		if (is_object($beandata))
+		{
+			$thisbean = $beandata;
+		}
+
+		$id = $thisbean->id;
+		if ($id > 0) 
+		{
+			print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
+			print_r($this->subscribers[$BEAN]);
+
+			if (!isset($this->subscribers[$BEAN])) return(false);
+			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
 			{
-				foreach($this->clients as $c)
+				// Possibly more statii to come
+				if ($status == 'SUB') 
 				{
-					if ($c->resourceId == $subscriber)
+					foreach($this->clients as $c)
 					{
-						print "SENDING ".$c->resourceId. " WHAT {$happened} TO {$BEAN} #{$id}\n";
-						switch($happened) 
+						if ($c->resourceId == $subscriber)
 						{
-							case 'DEL':
-								unset($this->subscribers[$BEAN][$id]);
-								$c->send("BUS DEL {$BEAN} {$id}");
-								break;
-							case 'SET': 
-								// Auto push updates to beans/records
-								$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
-								break;
-							default:
-								break;
+							print "SENDING ".$c->resourceId. " WHAT {$happened} TO {$BEAN} #{$id}\n";
+							switch($happened) 
+							{
+								// Not quite implemented in the JS yet .. 
+								case 'DEL':
+									unset($this->subscribers[$BEAN][$id]);
+									$c->send("BUS DEL {$BEAN} {$id}");
+									break;
+								case 'SET': 
+									// Auto push updates to beans/records
+									$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+									break;
+								default:
+									break;
+							}
 						}
 					}
 				}
@@ -202,7 +214,7 @@ class Chat implements MessageComponentInterface {
 						$thisbean->id = $id;
 						$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
 
-						$this->updateSubscribersTo($BEAN, $id, 'SET');
+						// $this->updateSubscribersTo($BEAN, $id, 'SET');
 
 						break;
 
@@ -245,7 +257,7 @@ class Chat implements MessageComponentInterface {
 						{
 							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
-							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
+							// $this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
@@ -259,7 +271,7 @@ class Chat implements MessageComponentInterface {
 						{
 							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
-							$this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
+							// $this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
