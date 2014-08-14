@@ -161,6 +161,7 @@ class Chat implements MessageComponentInterface {
 			print_r($this->subscribers[$BEAN]);
 
 			if (!isset($this->subscribers[$BEAN])) return(false);
+			if (!isset($this->subscribers[$BEAN][$id])) return(false);
 			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
 			{
 				// Possibly more statii to come
