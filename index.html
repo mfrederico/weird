@@ -158,6 +158,11 @@
 				{
 					$('#output').text('Error: '+dataSet);
 				}
+				if (idx == 'NEW')
+				{
+					$('#formB input').attr('value','');
+					doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
+				}
 				else if (idx == 'OK')
 				{
 					magic = '';

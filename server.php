@@ -21,6 +21,7 @@ class Super_Model extends RedBean_SimpleModel
 	}
 
 	public function dispense() {
+		global $chat;
 	}
 
 	public function update() {
@@ -29,15 +30,18 @@ class Super_Model extends RedBean_SimpleModel
 	}
 
 	public function after_update() {
+		global $chat;
+		$chat->updateSubscribersTo($this->bean->getMeta('type'), '*', 'NEW');
 	}
 
 	public function delete() {
 		global $chat;
-		print_r($this->bean);
 		$chat->updateSubscribersTo($this->bean->getMeta('type'), $this->bean, 'DEL');
 	}
 
 	public function after_delete() {
+		global $chat;
+		$chat->updateSubscribersTo($this->bean->getMeta('type'), '*', 'NEW');
 	}
 }
 
@@ -127,13 +131,27 @@ class Chat implements MessageComponentInterface {
 	// $beandata mixed (int for bean id or actual bean object)
 	public function updateSubscribersTo($BEAN, $beandata, $happened = 'SET')
 	{
+		// Bean is passed as INT
 		if (is_int($beandata) && $happened == 'SET') 
 		{
 			$thisbean = R::load($BEAN, $beandata);
 		}
+		// Bean is already loaded
 		if (is_object($beandata))
 		{
 			$thisbean = $beandata;
+		}
+		// Subscribed to ALL beans in collection
+		if ($beandata == '*')
+		{
+			print "NEW updates to {$BEAN} collection!\n";
+			// Alert all subscribers there is a NEW bean
+			foreach($this->clients as $c)
+			{
+				// Auto push updates to beans/records
+				$c->send(json_encode(array('NEW'=>array($BEAN)), TRUE));
+			}
+			return(true);
 		}
 
 		$id = $thisbean->id;
@@ -214,8 +232,6 @@ class Chat implements MessageComponentInterface {
 						$thisbean->id = $id;
 						$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
 
-						// $this->updateSubscribersTo($BEAN, $id, 'SET');
-
 						break;
 
 					case 'GET':
@@ -257,7 +273,6 @@ class Chat implements MessageComponentInterface {
 						{
 							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
-							// $this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
@@ -271,7 +286,6 @@ class Chat implements MessageComponentInterface {
 						{
 							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
-							// $this->updateSubscribersTo($BEAN, $tmpbean->id, 'DEL');
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
 						break;
