@@ -150,6 +150,7 @@
 
 		function perform_magic(message)
 		{
+			$('#formB input').attr('value','');
 			console.log('MAGIC', message);
 			$('#output').html('');
 			$.each(message, function(idx,dataSet)
@@ -160,7 +161,6 @@
 				}
 				if (idx == 'NEW')
 				{
-					$('#formB input').attr('value','');
 					doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 				}
 				else if (idx == 'OK')
