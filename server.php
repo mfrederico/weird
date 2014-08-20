@@ -157,7 +157,7 @@ class Chat implements MessageComponentInterface {
 		$id = $thisbean->id;
 		if ($id > 0) 
 		{
-
+			// Make sure we have beans AND bean with an ID
 			if (!isset($this->subscribers[$BEAN])) return(false);
 			if (!isset($this->subscribers[$BEAN][$id])) return(false);
 
