@@ -73,7 +73,7 @@
 				<div class="col-md-6">
 					<div class="panel panel-info">
 						<div class="panel-heading">
-							<h3 class="panel-title">PLAY With collection data here</h3>
+							<h3 class="panel-title">Single record</h3>
 						</div>
 						<div class="panel-body">
 							<form id="formB">
@@ -81,20 +81,23 @@
 							</form>
 						</div>
 						<div class="panel-footer">
-							<small><b>NOTE:</b> POP will GET one record from the TOP of the collection, then and DELETE from the collection</small>
+							<small><b>NOTE:</b>Click "LIST" on the collection to see all the IDs</small>
 						</div>
 					</div>
 				</div>
 				<div class="col-md-6">
 					<div class="panel panel-info">
 						<div class="panel-heading">
-							<h3 class="panel-title">Data output will show up here</h3>
+							<h3 class="panel-title">Collection output will show up here</h3>
 						</div>
 						<div class="panel-body">
 							<a class="GET btn btn-primary" href="#GET"><i class="fa fa-list"></i> LIST</a>
 							<a class="POP btn btn-primary" href="#POP"><i class="fa fa-eject"></i> POP</a><br />
 						</div>
-						<div class="panel-footer" id="output"></div>
+						<div class="panel-footer">
+							<small><b>NOTE:</b> POP will FIFO GET/DELETE one record from the TOP of the collection</small>
+							<div id="output"></div>
+						</div>
 					</div>
 				</div>
 			</div>
