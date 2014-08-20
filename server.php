@@ -157,11 +157,12 @@ class Chat implements MessageComponentInterface {
 		$id = $thisbean->id;
 		if ($id > 0) 
 		{
-			print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
-			print_r($this->subscribers[$BEAN]);
 
 			if (!isset($this->subscribers[$BEAN])) return(false);
 			if (!isset($this->subscribers[$BEAN][$id])) return(false);
+
+			print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
+			print_r($this->subscribers[$BEAN]);
 			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
 			{
 				// Possibly more statii to come
