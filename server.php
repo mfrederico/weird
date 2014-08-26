@@ -5,6 +5,7 @@
 include_once('vendor/autoload.php');
 include_once('vendor/rbsock/src/rb.php');
 
+
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
 
@@ -12,8 +13,8 @@ use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 
-
-$x = R::setup('sqlite:local.sqlite','test','test');
+if (file_exists('../weird_database.php')) include_once('../weird_database.php');
+if (!isset($database)) R::setup('sqlite:local.sqlite','test','test');
 
 class Super_Model extends RedBean_SimpleModel
 {

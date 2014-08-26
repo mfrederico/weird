@@ -25,7 +25,26 @@
 	<div class="page-wrapper">
 		<div data-role="content">
 			<h1>WEIRd</h1>
-			<blockquote><small>Open 2 browsers, modify data, and watch the data output panel</small></blockquote>
+				<small>
+					<ul>
+						<li>Open 2 browsers</li>
+						<li>Click "Connect" on both</li>
+						<li><i>In browser A:</i>
+						<ul>
+							<li>Click LIST</li>
+							<li>SUBscribe to a record id in browser A</li>
+						</ul>
+						</li>
+						<li>
+							<i>In browser B:</i>
+						<ul>
+							<li>GET the record id</li>
+							<li>Modify data and click SET</li>
+							<li>Watch the data output panel in browser A</li>
+						</ul>
+						</li>
+					</ul>
+				</small>
 			<div class="row">
 				<div class="col-md-2">
 					<div class="panel panel-default connectpanel">
@@ -77,7 +96,7 @@
 						</div>
 						<div class="panel-body">
 							<form id="formB">
-								RECORD ID: <input type="text" name="id" value=""> <a class="GET btn btn-default" href="#GET"><i class="fa fa-arrow-down"></i> GET</a> <a class="SUB btn btn-primary" href="#SUB"><i class="fa fa-link"></i> SUB</a> <a class="DEL btn btn-danger" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
+								<label for="id">RECORD ID</label> <input type="text" name="id" value="" size="10"> <a class="GET btn btn-sm btn-default" href="#GET"><i class="fa fa-arrow-down"></i> GET</a> <a class="SUB btn btn-sm btn-primary" href="#SUB"><i class="fa fa-link"></i> SUB</a> <a class="DEL btn btn-sm btn-danger" href="#DEL"><i class="fa fa-trash-o"></i> DEL</a>
 							</form>
 						</div>
 						<div class="panel-footer">
@@ -180,14 +199,16 @@
 						{
 							magic += '<div class="form-group">';
 							magic += '<label for="'+k+'">'+k+'</label>';
-							magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
+							//magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
+							magic += '<textarea class="form-control" name="'+k+'">'+v+'</textarea>';
 							magic += '</div>';
 
 							// This is this particular record id
 							if (k == 'id') record_id = v;
 						});
 						magic += '<a class="UPDATE btn btn-default" href="#SET"><i class="fa fa-check"></i> SET</a>';
-						magic += ' <a class="SUBSCRIBE btn btn-primary" href="#SUB" id="id_'+record_id+'"><i class="fa fa-link"></i> SUB</a>';
+						magic += ' <a class="SUBSCRIBE btn btn-primary" href="#SUB" id="sub_'+record_id+'"><i class="fa fa-link"></i> SUB</a>';
+						magic += ' <a class="DELETE btn btn-danger" href="#DEL" id="del_'+record_id+'"><i class="fa fa-trash-o"></i> DEL</a>';
 						magic += '</form></div></div>';
 					});
 					$('#output').append(magic);
@@ -197,6 +218,14 @@
 					console.log('Nothing special here.');
 					console.log(message);
 				}
+			});
+
+			// For clicking sub on specific item in list
+			$('.DELETE').on('click', function()
+			{
+				id = $(this).attr('id').split('_');
+				del_json = { "id" : id[1] };
+				doWeird('del',$('.bean').val(), JSON.stringify(del_json));
 			});
 
 			// For clicking sub on specific item in list
