@@ -12,8 +12,12 @@ use Ratchet\Server\IoServer;
 use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 
+$database = array('type'=>'mysql','host'=>'localhost','name'=>'oneclickretail','un'=>'oneclickretail','pw'=>'oneclickretail');
 
-$x = R::setup('sqlite:local.sqlite','test','test');
+// $x = R::setup('sqlite:local.sqlite','test','test');
+R::setup($database['type'] . ":" .  "host={$database['host']};" .  "dbname={$database['name']}", $database['un'], $database['pw']);
+
+
 
 class Super_Model extends RedBean_SimpleModel
 {
