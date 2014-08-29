@@ -14,8 +14,9 @@ use Ratchet\Http\HttpServer;
 use Ratchet\WebSocket\WsServer;
 
 if (file_exists('../weird_database.php')) include_once('../weird_database.php');
-if (!isset($database)) R::setup('sqlite:local.sqlite','test','test');
+else R::setup('sqlite:local.sqlite','test','test');
 
+// "Super model" class for RedBean integration
 class Super_Model extends RedBean_SimpleModel
 {
 	public function open() {
@@ -47,8 +48,7 @@ class Super_Model extends RedBean_SimpleModel
 }
 
 
-
-// Dynamically create these suckers?
+// Dynamically // Factory create these suckers?
 class Model_Books extends Super_Model { }
 
 class Chat implements MessageComponentInterface {
@@ -93,11 +93,6 @@ class Chat implements MessageComponentInterface {
 
 	public static function parseFormJson($js)
 	{
-		global $lifeCycle;
-
-		print "GOT HERE: {$lifeCycle}\n";
-		$lifeCycle = '';
-
 		$final = array();
 		$formdata = json_decode($js,true);
 		foreach($formdata as $fields)
@@ -240,15 +235,23 @@ class Chat implements MessageComponentInterface {
 					case 'GET':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 						$tmpbean = R::findAll($BEAN, $payload_bind, $payload_values);
+						foreach($tmpbean as $bean)
+						{
+							$musical_fruit[] = $bean->export();
+						}	
+						if (count($musical_fruit)) $from->send(json_encode(array('OK'=>$musical_fruit)));
+						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+
+						/*
 						if ($tmpbean)
 						{
 							$from->send(json_encode(array('OK'=>R::exportAll($tmpbean, TRUE))));
 						}
 						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						*/
 						break;
 
 					case 'SUB':
-						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 					
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
@@ -268,7 +271,6 @@ class Chat implements MessageComponentInterface {
 
 					// POP and DEL are exactly the same thing at the moment
 					case 'POP':
-						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 					
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
@@ -281,7 +283,6 @@ class Chat implements MessageComponentInterface {
 						break;
 
 					case 'DEL':
-						$payload_bind	= '';
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 					
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
