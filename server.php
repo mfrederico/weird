@@ -235,6 +235,7 @@ class Chat implements MessageComponentInterface {
 					case 'GET':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 						$tmpbean = R::findAll($BEAN, $payload_bind, $payload_values);
+					 	$musical_fruit = array();
 						foreach($tmpbean as $bean)
 						{
 							$musical_fruit[] = $bean->export();
