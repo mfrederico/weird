@@ -1,9 +1,10 @@
 <?php
+ob_end_flush();
 
 // JSON ENCODE AS ARRAY! PLEASE - FOR THE LOVE OF ALL THAT IS HOLY
 
 include_once('vendor/autoload.php');
-include_once('vendor/rbsock/src/rb.php');
+//include_once('vendor/rbsock/src/rb.php');
 
 
 use Ratchet\MessageComponentInterface;
@@ -63,6 +64,11 @@ class Chat implements MessageComponentInterface {
 	protected $clients;
 	protected $notify;
 
+	static public function csend($conn,$data) { 
+		print "\n".print_r($data,true)."\n".date('Y-m-d H:i:s')."------------------\n";
+		$conn->send($data);
+	}
+	
 	public function getClients()
 	{
 		return($clients);
@@ -75,7 +81,8 @@ class Chat implements MessageComponentInterface {
 	public function onOpen(ConnectionInterface $conn) {
 		print "Connection open.\n";
 		$this->clients->attach($conn);
-		$conn->send(json_encode(array(array('RBWS'=>R::getVersion())), TRUE));
+		//$conn->send(json_encode(array(array('RBWS'=>R::getVersion())), TRUE));
+		self::csend($conn, json_encode(array(array('RBWS'=>R::getVersion())), TRUE));
 	}
 
     public function pushNotify(ConnectionInterface $from, $msg) {
@@ -86,7 +93,8 @@ class Chat implements MessageComponentInterface {
         foreach ($this->clients as $client) {
             if ($from !== $client) {
                 // The sender is not the receiver, send to each client connected
-                $client->send($msg);
+                //$client->send($msg);
+                self::csend($client,$msg);
             }
         }
     }
@@ -145,7 +153,8 @@ class Chat implements MessageComponentInterface {
 			foreach($this->clients as $c)
 			{
 				// Auto push updates to beans/records
-				$c->send(json_encode(array('NEW'=>array($BEAN)), TRUE));
+				//$c->send(json_encode(array('NEW'=>array($BEAN)), TRUE));
+				self::csend($c,json_encode(array('NEW'=>array($BEAN)), TRUE));
 			}
 			return(true);
 		}
@@ -174,11 +183,13 @@ class Chat implements MessageComponentInterface {
 								// Not quite implemented in the JS yet .. 
 								case 'DEL':
 									unset($this->subscribers[$BEAN][$id]);
-									$c->send("BUS DEL {$BEAN} {$id}");
+									//$c->send("BUS DEL {$BEAN} {$id}");
+									self::csend($c,"BUS DEL {$BEAN} {$id}");
 									break;
 								case 'SET': 
 									// Auto push updates to beans/records
-									$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+									//$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+									self::csend($c,json_encode(array('OK'=>array($thisbean->export())), TRUE));
 									break;
 								default:
 									break;
@@ -227,8 +238,15 @@ class Chat implements MessageComponentInterface {
 						$id = R::store($thisbean);
 
 						// Auto push updates to beans/records
-						$thisbean->id = $id;
-						$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+						if ($id) { 
+							$thisbean->id = $id;
+							//$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
+							self::csend($from,json_encode(array('OK'=>array($thisbean->export())), TRUE));
+						}
+						else {
+							//$from->send(json_encode(array('ERR'=>array('message'=>'no payload data')), TRUE));
+							self::csend($from,json_encode(array('ERR'=>array('message'=>'no payload data')), TRUE));
+						}
 
 						break;
 
@@ -240,8 +258,14 @@ class Chat implements MessageComponentInterface {
 						{
 							$musical_fruit[] = $bean->export();
 						}	
-						if (count($musical_fruit)) $from->send(json_encode(array('OK'=>$musical_fruit)));
-						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						if (count($musical_fruit)) {
+							//$from->send(json_encode(array('OK'=>$musical_fruit)));
+							self::csend($from,json_encode(array('OK'=>$musical_fruit)));
+						}
+						else {
+							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
+						}
 
 						/*
 						if ($tmpbean)
@@ -258,9 +282,13 @@ class Chat implements MessageComponentInterface {
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean) 
 						{
-							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							//$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							self::csend($from,json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 						}
-						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						else {
+							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
+						}
 
 						// Watch for memory compounding
 						$this->subscribers[$BEAN][$tmpbean->id][$from->resourceId] = 'SUB';
@@ -277,10 +305,14 @@ class Chat implements MessageComponentInterface {
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean) 
 						{
-							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							//$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							self::csend($from,json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
 						}
-						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						else {
+							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
+						}
 						break;
 
 					case 'DEL':
@@ -289,17 +321,25 @@ class Chat implements MessageComponentInterface {
 						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
 						if ($tmpbean) 
 						{
-							$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							//$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
+							self::csend($from,json_encode(array('OK'=>array($tmpbean->export())), TRUE));
 							R::trash($tmpbean);
 						}
-						else $from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+						else {
+							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
+							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
+						}
 						break;
 					default : 
-						$from->send(json_encode(array('ERR'=>$BEAN. ' -- not found.')));
+						//$from->send(json_encode(array('ERR'=>$BEAN. ' -- not found.')));
+						self::csend($from,json_encode(array('ERR'=>$BEAN. ' -- not found.')));
 				}
 			}
 		}
-		else $from->send(json_encode(array('ERR'=>'Invalid command, SOZ')));
+		else {
+			//$from->send(json_encode(array('ERR'=>'Invalid command, SOZ')));
+			self::csend($from,json_encode(array('ERR'=>'Invalid command, SOZ')));
+		}
 	}
 
 	public function onClose(ConnectionInterface $conn)
@@ -328,7 +368,8 @@ class Chat implements MessageComponentInterface {
 	public function onError(ConnectionInterface $conn, \Exception $e)
 	{
 		print "* Cerebral hemorrhage: ".$e->getMessage()."\n";
-		$conn->send(json_encode(array('ERR'=>$e->getMessage())));
+		//$conn->send(json_encode(array('ERR'=>$e->getMessage())));
+		self::csend($conn,json_encode(array('ERR'=>$e->getMessage())));
 		$conn->close();
 	}
 }

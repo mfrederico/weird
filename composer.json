@@ -1,10 +1,11 @@
 {
 	"autoload": {
-		"psr-0": {
-			"rbsock": "src"
-		}
+        "classmap" : [
+            "lib/",
+            "controls/"
+        ]
 	},
     "require": {
-        "cboden/ratchet": "0.3.*"
+        "cboden/ratchet": "dev-master"
     }
 }
