@@ -25,26 +25,6 @@
 	<div class="page-wrapper">
 		<div data-role="content">
 			<h1>WEIRd</h1>
-				<small>
-					<ul>
-						<li>Open 2 browsers</li>
-						<li>Click "Connect" on both</li>
-						<li><i>In browser A:</i>
-						<ul>
-							<li>Click LIST</li>
-							<li>SUBscribe to a record id in browser A</li>
-						</ul>
-						</li>
-						<li>
-							<i>In browser B:</i>
-						<ul>
-							<li>GET the record id</li>
-							<li>Modify data and click SET</li>
-							<li>Watch the data output panel in browser A</li>
-						</ul>
-						</li>
-					</ul>
-				</small>
 			<div class="row">
 				<div class="col-md-2">
 					<div class="panel panel-default connectpanel">
@@ -88,6 +68,7 @@
 				</div>
 			</div>
 
+			<!--
 			<div class="row">
 				<div class="col-md-6">
 					<div class="panel panel-info">
@@ -104,6 +85,7 @@
 						</div>
 					</div>
 				</div>
+				-->
 				<div class="col-md-6">
 					<div class="panel panel-info">
 						<div class="panel-heading">
@@ -132,6 +114,9 @@
 	var weird;
 	// FormA the data input form
 	// FormB is the "ID" input form
+	$(document).ready(function() {
+		connect(); 
+	});
 
 	$('.connect').on('click',function() { connect() });
 
@@ -166,6 +151,7 @@
 			}
 			else
 			{
+				console.log('Performing: '+cmd+' '+bean, data_payload);
 				weird.send(cmd.toUpperCase()+' '+bean+' '+data_payload);
 				return(true);
 			}
@@ -174,49 +160,75 @@
 		function perform_magic(message)
 		{
 			$('#formB input').attr('value','');
-			console.log('MAGIC', message);
-			$('#output').html('');
+			console.log('MAGIC',typeof message);
+			var dataSet = '';
+
+			console.log('Message Length: ',message.data, message.OK);
+			if (!message.length) {
+				console.log('No message coming.');
+				return false;
+			}
+
 			$.each(message, function(idx,dataSet)
 			{
 				if (idx =='ERR')
 				{
-					$('#output').text('Error: '+dataSet);
+					$('#output').text('Error: '+dataSet.message);
 				}
 				if (idx == 'NEW')
 				{
-					doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
+					// doWeird('get',$('.bean').val(),JSON.stringify($('#formB').serializeArray()));
 				}
 				else if (idx == 'OK')
 				{
-					magic = '';
+					var magic	= '';
+					var obj 	= '';
+					console.log('Dataset Length: ',dataSet.length);
 					$.each(dataSet, function (i,obj) 
 					{
-						// Maybe use some sort of templating system here for wigitization of data?
-						magic += '<div class="panel"><div class="panel-body">';
-						magic += '<form role="form" id="magic_'+i+'" class="magic">'
-						record_id = 0;
-						$.each(obj, function(k,v) 
-						{
-							magic += '<div class="form-group">';
-							magic += '<label for="'+k+'">'+k+'</label>';
-							//magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
-							magic += '<textarea class="form-control" name="'+k+'">'+v+'</textarea>';
-							magic += '</div>';
-
-							// This is this particular record id
+						var record_id = '';
+						// Get the record id
+						$.each(obj, function(k,v) {
 							if (k == 'id') record_id = v;
 						});
-						magic += '<a class="UPDATE btn btn-default" href="#SET"><i class="fa fa-check"></i> SET</a>';
-						magic += ' <a class="SUBSCRIBE btn btn-primary" href="#SUB" id="sub_'+record_id+'"><i class="fa fa-link"></i> SUB</a>';
-						magic += ' <a class="DELETE btn btn-danger" href="#DEL" id="del_'+record_id+'"><i class="fa fa-trash-o"></i> DEL</a>';
-						magic += '</form></div></div>';
+
+						console.log('Found record: ',record_id);
+						console.log($('#magicpanel_'+record_id).length); 
+
+						if ($('#magicpanel_'+record_id).length) {
+							$.each(obj, function(k,v) {
+								// This is this particular record id
+								$('#magicpanel_'+record_id+' ._'+k).val(v);
+								$('#magicpanel_'+record_id+' ._'+k).fadeTo('slow',0.5,function() {
+									console.log('#magicpanel_'+record_id+' ._'+k+' = '+v);
+								});
+							});
+
+						}
+						else {
+							// Maybe use some sort of templating system here for wigitization of data?
+							magic += '<div class="panel" id="magicpanel_'+record_id+'"><div class="panel-body">';
+							magic += '<form role="form" id="magic_'+record_id+'" class="magic">'
+							$.each(obj, function(k,v) 
+							{
+								magic += '<div class="form-group">';
+								magic += '<label for="'+k+'">'+k+'</label>';
+								//magic += '<input class="form-control" type="text" name="'+k+'" value="'+v+'">';
+								magic += '<textarea class="form-control _'+k+'" name="'+k+'">'+v+'</textarea>';
+								magic += '</div>';
+							});
+							magic += '<a class="UPDATE btn btn-default"     id="mod_'+record_id+'" href="#SET"><i class="fa fa-check"></i> SET</a>';
+							magic += ' <a class="SUBSCRIBE btn btn-primary" id="sub_'+record_id+'" href="#SUB" id="sub_'+record_id+'"><i class="fa fa-link"></i> SUB</a>';
+							magic += ' <a class="DELETE btn btn-danger"     id="del_'+record_id+'" href="#DEL" id="del_'+record_id+'"><i class="fa fa-trash-o"></i> DEL</a>';
+							magic += '</form></div></div>';
+							console.log('Appended to output: #magicpanel_'+record_id);
+						}
 					});
-					$('#output').append(magic);
+					($('#output').append(magic));
 				}
 				else 
 				{
-					console.log('Nothing special here.');
-					console.log(message);
+					console.log('Nothing special here: ',idx,message);
 				}
 			});
 
@@ -239,15 +251,20 @@
 			// Clicking "SET" in the list
 			$('.UPDATE').on('click',function() 
 			{
-				magic_form_id = $(this).parent().attr('id');
-				doWeird('set',$('.bean').val(),JSON.stringify($('#'+magic_form_id).serializeArray()));
+				id = $(this).attr('id').split('_');
+				magic_form_id = 'form#magic_'+id[1];
+				json = JSON.stringify($(magic_form_id).serializeArray());
+				doWeird('set', $('.bean').val(), json);
 			});
 
+			message = '';
 		}
 
 		function connect()
 		{
-			weird = new WebSocket("ws://"+window.location.hostname+":8080");
+			console.log('Making the connect.');
+			weird = new WebSocket("ws://"+window.location.hostname+":8888");
+			//weird = new WebSocket("ws://52.39.111.250:8888");
 
 			weird.onopen = function (event) {
 				$('.connectpanel').css('background','lightgreen');
@@ -263,6 +280,7 @@
 
 			weird.onmessage = function (data, start, end)
 			{
+				console.log('Got message.', data, start, end);
 				message = JSON.parse(data.data);
 				perform_magic(message);
 			}
