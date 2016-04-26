@@ -1,8 +1,7 @@
 {
 	"autoload": {
         "classmap" : [
-            "lib/",
-            "controls/"
+            "lib/"
         ]
 	},
     "require": {

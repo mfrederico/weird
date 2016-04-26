@@ -1,11 +1,7 @@
 <?php
-ob_end_flush();
-
 // JSON ENCODE AS ARRAY! PLEASE - FOR THE LOVE OF ALL THAT IS HOLY
 
 include_once('vendor/autoload.php');
-//include_once('vendor/rbsock/src/rb.php');
-
 
 use Ratchet\MessageComponentInterface;
 use Ratchet\ConnectionInterface;
@@ -17,40 +13,9 @@ use Ratchet\WebSocket\WsServer;
 if (file_exists('../weird_database.php')) include_once('../weird_database.php');
 else R::setup('sqlite:local.sqlite','test','test');
 
-// "Super model" class for RedBean integration
-class Super_Model extends RedBean_SimpleModel
-{
-	public function open() {
-	}
-
-	public function dispense() {
-		global $chat;
-	}
-
-	public function update() {
-		global $chat;
-		$chat->updateSubscribersTo($this->bean->getMeta('type'), $this->bean, 'SET');
-	}
-
-	public function after_update() {
-		global $chat;
-		$chat->updateSubscribersTo($this->bean->getMeta('type'), '*', 'NEW');
-	}
-
-	public function delete() {
-		global $chat;
-		$chat->updateSubscribersTo($this->bean->getMeta('type'), $this->bean, 'DEL');
-	}
-
-	public function after_delete() {
-		global $chat;
-		$chat->updateSubscribersTo($this->bean->getMeta('type'), '*', 'NEW');
-	}
-}
-
 
 // Dynamically // Factory create these suckers?
-class Model_Books extends Super_Model { }
+//class Model_Books extends Super_Model { }
 
 class Chat implements MessageComponentInterface {
 
@@ -61,10 +26,11 @@ class Chat implements MessageComponentInterface {
 
 	public $subscribers;
 	public $subscriptions;
+
 	protected $clients;
 	protected $notify;
 
-	static public function csend($conn,$data) { 
+	static public function csend(ConnectionInterface $conn, $data) { 
 		print "\n".print_r($data,true)."\n".date('Y-m-d H:i:s')."------------------\n";
 		$conn->send($data);
 	}
@@ -91,9 +57,8 @@ class Chat implements MessageComponentInterface {
             , $from->resourceId, $msg, $numRecv, $numRecv == 1 ? '' : 's');
 
         foreach ($this->clients as $client) {
+			// The sender is not the receiver, send to each client connected
             if ($from !== $client) {
-                // The sender is not the receiver, send to each client connected
-                //$client->send($msg);
                 self::csend($client,$msg);
             }
         }
@@ -131,79 +96,9 @@ class Chat implements MessageComponentInterface {
 		return (array($payload_bind, $payload_values));
 	}
 
-	/* Updates all the connected clients who are current subscribers to this specific bean/id */
-	// $beandata mixed (int for bean id or actual bean object)
-	public function updateSubscribersTo($BEAN, $beandata, $happened = 'SET')
-	{
-		// Bean is passed as INT
-		if (is_int($beandata) && $happened == 'SET') 
-		{
-			$thisbean = R::load($BEAN, $beandata);
-		}
-		// Bean is already loaded
-		if (is_object($beandata))
-		{
-			$thisbean = $beandata;
-		}
-		// Subscribed to ALL beans in collection
-		if ($beandata == '*')
-		{
-			print "NEW updates to {$BEAN} collection!\n";
-			// Alert all subscribers there is a NEW bean
-			foreach($this->clients as $c)
-			{
-				// Auto push updates to beans/records
-				//$c->send(json_encode(array('NEW'=>array($BEAN)), TRUE));
-				self::csend($c,json_encode(array('NEW'=>array($BEAN)), TRUE));
-			}
-			return(true);
-		}
-
-		$id = $thisbean->id;
-		if ($id > 0) 
-		{
-			// Make sure we have beans AND bean with an ID
-			if (!isset($this->subscribers[$BEAN])) return(false);
-			if (!isset($this->subscribers[$BEAN][$id])) return(false);
-
-			print "UPDATING ".count($this->subscribers[$BEAN][$id]). " ({$happened}) SUBSCRIBERS TO {$BEAN}->{$id}\n";
-			print_r($this->subscribers[$BEAN]);
-			foreach($this->subscribers[$BEAN][$id] as $subscriber=>$status)
-			{
-				// Possibly more statii to come
-				if ($status == 'SUB') 
-				{
-					foreach($this->clients as $c)
-					{
-						if ($c->resourceId == $subscriber)
-						{
-							print "SENDING ".$c->resourceId. " WHAT {$happened} TO {$BEAN} #{$id}\n";
-							switch($happened) 
-							{
-								// Not quite implemented in the JS yet .. 
-								case 'DEL':
-									unset($this->subscribers[$BEAN][$id]);
-									//$c->send("BUS DEL {$BEAN} {$id}");
-									self::csend($c,"BUS DEL {$BEAN} {$id}");
-									break;
-								case 'SET': 
-									// Auto push updates to beans/records
-									//$c->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
-									self::csend($c,json_encode(array('OK'=>array($thisbean->export())), TRUE));
-									break;
-								default:
-									break;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
 	public function onMessage(ConnectionInterface $from, $msg)
 	{
-		print_r("CONN {$from->resourceId} :: ");
+		print("CONN {$from->resourceId} :: ");
 		list($CMD, $BEAN, $PAYLOAD) = explode(' ',$msg,3);
 
 		if (isset($CMD) && isset($BEAN))
@@ -240,8 +135,11 @@ class Chat implements MessageComponentInterface {
 						// Auto push updates to beans/records
 						if ($id) { 
 							$thisbean->id = $id;
+
+							$msg = json_encode(array('OK'=>array($thisbean->export())));
+							self::pushNotify($from, $msg); 
 							//$from->send(json_encode(array('OK'=>array($thisbean->export())), TRUE));
-							self::csend($from,json_encode(array('OK'=>array($thisbean->export())), TRUE));
+							// self::csend($from,json_encode(array('OK'=>array($thisbean->export())), TRUE));
 						}
 						else {
 							//$from->send(json_encode(array('ERR'=>array('message'=>'no payload data')), TRUE));
@@ -300,21 +198,6 @@ class Chat implements MessageComponentInterface {
 
 					// POP and DEL are exactly the same thing at the moment
 					case 'POP':
-						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
-					
-						$tmpbean = R::findOne($BEAN, $payload_bind, $payload_values);
-						if ($tmpbean) 
-						{
-							//$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
-							self::csend($from,json_encode(array('OK'=>array($tmpbean->export())), TRUE));
-							R::trash($tmpbean);
-						}
-						else {
-							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
-							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
-						}
-						break;
-
 					case 'DEL':
 						list($payload_bind, $payload_values) = self::buildBindings($payload_data);
 					
@@ -322,17 +205,18 @@ class Chat implements MessageComponentInterface {
 						if ($tmpbean) 
 						{
 							//$from->send(json_encode(array('OK'=>array($tmpbean->export())), TRUE));
-							self::csend($from,json_encode(array('OK'=>array($tmpbean->export())), TRUE));
-							R::trash($tmpbean);
+							$msg = json_encode(array('DEL'=>array('BEAN'=>$BEAN,'id'=>$tmpbean->id)),TRUE);
+							self::pushNotify($from, $msg); 
+							// R::trash($tmpbean);
 						}
 						else {
 							//$from->send(json_encode(array('ERR'=>$BEAN. ' not found.')));
-							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.')));
+							self::csend($from,json_encode(array('ERR'=>$BEAN. ' not found.'),true));
 						}
 						break;
 					default : 
 						//$from->send(json_encode(array('ERR'=>$BEAN. ' -- not found.')));
-						self::csend($from,json_encode(array('ERR'=>$BEAN. ' -- not found.')));
+						self::csend($from,json_encode(array('ERR'=>$BEAN. ' -- not found.'),true));
 				}
 			}
 		}
