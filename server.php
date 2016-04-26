@@ -380,7 +380,7 @@ $server = IoServer::factory(
 		new WsServer(
 			$chat
 		)
-	), 8080
+	), 8888
 );
 
 $server->run();
